@@ -27,14 +27,15 @@ FLAGS="-D_GNU_SOURCE -DDISABLE_THREADING -DMGBA_STANDALONE"
 "$CMAKE" --build "$BUILD" -j "$(nproc 2>/dev/null || echo 4)"
 
 # Compile our wrapper with EXACTLY the library's defines: they change mCore/VFile struct layouts.
-LIBDEFS=$(grep -m1 -A3 "build CMakeFiles/mgba.dir/src/core/core.c.o" "$BUILD/build.ninja" | sed -n 's/^ *DEFINES = //p' | tr -d '')
+LIBDEFS=$(grep -m1 -A3 "build CMakeFiles/mgba.dir/src/core/core.c.o" "$BUILD/build.ninja" | sed -n 's/^ *DEFINES = //p' | tr -d '\r')
 CORE="$P/adapters/mgba/core"
 mkdir -p "$CORE"
 "$EMCC" "$P/web/src/hm_mgba.c" "$BUILD/libmgba.a" -O3 $FLAGS $LIBDEFS   -I "$SRC/include" -I "$BUILD/include"   -s MODULARIZE=1 -s EXPORT_ES6=1 -s EXPORT_NAME=createMgba -s ENVIRONMENT=web   -s ALLOW_MEMORY_GROWTH=1 -s FILESYSTEM=0   -s EXPORTED_FUNCTIONS=_malloc,_free   -s EXPORTED_RUNTIME_METHODS=HEAPU8,HEAP16,HEAPU16,HEAPU32   -o "$CORE/mgba.mjs"
 cp "$SRC/LICENSE" "$CORE/LICENSE.mgba"
-printf 'mgba %s
-emcc %s
-' "$MGBA_REF" "$("$EMCC" --version 2>/dev/null | head -1 | tr -d '')" > "$CORE/BUILD-INFO.txt"
+# Windows emcc and git write CRLF; the canonical (CI) output is LF. Normalise before checksumming.
+for f in "$CORE/mgba.mjs" "$CORE/LICENSE.mgba"; do sed -i 's/\r$//' "$f"; done
+EMCC_VER="$("$EMCC" --version 2>/dev/null | head -1 | tr -d '\r')"
+printf 'mgba %s\nemcc %s\n' "$MGBA_REF" "$EMCC_VER" > "$CORE/BUILD-INFO.txt"
 # Checksums are relative to core/ so BUILD-INFO.txt carries no machine-specific paths.
 (cd "$CORE" && sha256sum -b mgba.wasm mgba.mjs) >> "$CORE/BUILD-INFO.txt"
 cat "$CORE/BUILD-INFO.txt"

@@ -66,6 +66,8 @@ bash "$RECIPE_FILE" "$SRC_N" "$OUT_N"
 # 4. Licence from the core repo, binding, provenance.
 cp "$SRC/LICENSE" "$ADAPTER/core/LICENSE.$RECIPE"
 cp "$HERE/binding.mjs" "$ADAPTER/binding.mjs"
+# Windows emcc and git write CRLF; the canonical (CI) output is LF. Normalise before checksumming.
+for f in "$ADAPTER/core/core.mjs" "$ADAPTER/core/LICENSE.$RECIPE"; do sed -i 's/\r$//' "$f"; done
 EMCC_VER="$("$EMCC" --version | head -n1 | tr -d '\r')"
 {
   echo "adapter: $ID"

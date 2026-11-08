@@ -41,9 +41,10 @@ _ROM_LOCK = threading.Lock()  # serialises game reads from disk
 
 
 class _Server(ThreadingHTTPServer):
-    # HTTPServer defaults to SO_REUSEADDR, which on Windows lets a second socket bind a port that is
-    # already listening. Off, a taken port raises OSError, so start-up can tell "ours" from "someone else's".
-    allow_reuse_address = False
+    # Windows: SO_REUSEADDR lets a second socket bind a port that is already listening, so it stays off there and
+    # a taken port raises OSError (start-up can tell "ours" from "someone else's"). POSIX: SO_REUSEADDR never allows
+    # binding a listening port; it only skips TIME_WAIT, without which a restart could not rebind for up to 60 s.
+    allow_reuse_address = os.name != "nt"
 
 
 def _core_files(adapter) -> list[str]:
