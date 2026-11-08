@@ -5,4 +5,4 @@
 *.nes binary
 *.bin binary
 # Build outputs are checksummed byte-for-byte: never convert their line endings.
-adapters/*/core/** -text
+adapters/*/core/** -text -eol

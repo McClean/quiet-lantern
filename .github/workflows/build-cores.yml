@@ -27,9 +27,14 @@ jobs:
         run: bash libretro/build-core.sh quicknes https://github.com/libretro/QuickNES_Core.git 26bb785c9deddb66a17717b21bb4e328f03ade32 quicknes
       - name: Rebuilt cores match the committed files
         id: same
+        # Byte comparison against the committed blobs (git's own status can flag a rewritten file whose bytes
+        # did not change).
         run: |
-          git status --porcelain adapters
-          git diff --exit-code --stat -- adapters
+          rc=0
+          for f in $(git ls-files 'adapters/*/core/*' 'adapters/*/binding.mjs'); do
+            if cmp -s <(git show "HEAD:$f") "$f"; then echo "same   $(sha256sum "$f")"; else echo "DIFFER $f"; rc=1; fi
+          done
+          exit $rc
       - name: Upload the rebuilt cores (only when they differ)
         if: failure() && steps.same.outcome == 'failure'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
