@@ -37,6 +37,19 @@ def test_extra_patterns_from_the_local_file_are_applied_case_insensitively():
     assert not check_private.scan_text("a.md", "by someone else\n", extra=["jane q public"])
 
 
+def test_the_licence_copyright_line_may_name_the_author():
+    assert check_private.scan_text("LICENSE", "Copyright (c) 2026 Jane Q Public\n", extra=["jane q public"]) == []
+
+
+def test_the_author_name_is_still_refused_elsewhere_in_the_licence_and_in_other_files():
+    assert check_private.scan_text("LICENSE", "Contact Jane Q Public\n", extra=["jane q public"])
+    assert check_private.scan_text("README.md", "Copyright (c) 2026 Jane Q Public\n", extra=["jane q public"])
+
+
+def test_the_licence_copyright_line_still_refuses_paths():
+    assert check_private.scan_text("LICENSE", f"Copyright (c) 2026 C:\\{U}\\someone\n")
+
+
 def test_clean_text_passes():
     assert check_private.scan_text("a.py", "ROOT = Path(__file__).parent\n") == []
 

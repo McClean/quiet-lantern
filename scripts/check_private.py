@@ -25,14 +25,21 @@ _BINARY_SUFFIXES = (".wasm", ".png", ".gba", ".nes", ".bin", ".gif", ".jpg")
 
 
 def scan_text(name: str, text: str, extra: list[str] | None = None) -> list[tuple[str, int, str]]:
-    """(file, line number, matched text) for every private match in `text`."""
+    """(file, line number, matched text) for every private match in `text`.
+
+    The one exception: a LICENSE copyright line may name the author, since the licence requires it.
+    Paths are still refused there.
+    """
     words = [w.lower() for w in (extra or []) if w.strip()]
+    is_licence = Path(name).name.upper().startswith("LICENSE")
     hits = []
     for n, line in enumerate(text.splitlines(), 1):
         for pat in _PATTERNS:
             m = pat.search(line)
             if m:
                 hits.append((name, n, m.group(0)))
+        if is_licence and line.lstrip().lower().startswith("copyright"):
+            continue
         low = line.lower()
         hits.extend((name, n, w) for w in words if w in low)
     return hits
