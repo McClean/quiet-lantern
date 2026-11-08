@@ -1,0 +1,25 @@
+# Native Hermes plugin manifest. Quote version. Keep provides_* identical to what register() does.
+manifest_version: 2
+api_version: 1
+name: emulator-catalog
+version: "0.1.0"
+description: >-
+  Play games you already own inside Hermes Desktop, with the agent alongside. A Game page runs each game in an
+  in-pane WebAssembly emulator (mGBA for GB/GBC/GBA, QuickNES for NES), and the agent can launch, press
+  buttons, take screenshots, save and load states and read memory. It never downloads games.
+  Disclosure: reads the game folders you add (and ~/Emulators/ROMs if present); never opens .sav files.
+  A read-only GET-only file server listens on 127.0.0.1:47911 for the Desktop page; one background thread
+  restarts it every 10 s if the port is free (EMULATOR_CATALOG_FILE_SERVER=0 turns it off). emu_session
+  starts an installed desktop emulator as a subprocess; its Lua bridge listens on 127.0.0.1 with a random
+  per-session token. Writes only under the plugin's data folder. No internet access, no credentials.
+author: McClean
+license: MIT
+requires_hermes: ">=0.23.0"
+provides_tools:
+  - emu_catalog
+  - emu_session
+  - emu_play
+  - game_mode
+provides_hooks: []
+provides_middleware: []
+requires_env: []

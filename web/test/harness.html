@@ -1,0 +1,18 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>sandbox harness</title></head>
+<body style="margin:0;background:#1b1b1b;color:#ccc;font:12px monospace">
+<div id="log">waiting</div>
+<!-- Same posture as the SDK's SandboxedFrame: allow-scripts only, opaque origin. -->
+<iframe id="f" sandbox="allow-scripts" style="width:720px;height:480px;border:0" src="/player/index.html"></iframe>
+<script>
+const f = document.getElementById('f');
+window.cmd = (m, transfer) => new Promise(r => {
+  const id = Math.random().toString(36).slice(2);
+  const h = e => { if (e.data && e.data.id === id) { removeEventListener('message', h); r(e.data); } };
+  addEventListener('message', h);
+  f.contentWindow.postMessage({ ...m, id }, '*', transfer || []);
+});
+addEventListener('message', e => { if (e.data && e.data.t) { document.getElementById('log').textContent = 'player: ' + e.data.t + ' origin=' + e.origin; window.__ready = true; } });
+window.boot = async () => { const rom = await (await fetch('/rom/game.gba')).arrayBuffer(); return window.cmd({ op: 'load', rom }, [rom]); };
+</script>
+</body></html>

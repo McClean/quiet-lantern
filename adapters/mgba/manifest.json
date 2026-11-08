@@ -1,0 +1,118 @@
+{
+  "contract": 1,
+  "id": "mgba",
+  "name": "mGBA",
+  "version": "662dada",
+  "licence": "MPL-2.0",
+  "priority": 10,
+  "runtime": {
+    "kind": "wasm",
+    "files": [
+      "core/mgba.mjs",
+      "core/mgba.wasm"
+    ],
+    "binding": "binding.mjs"
+  },
+  "systems": [
+    {
+      "id": "gba",
+      "name": "Game Boy Advance",
+      "extensions": [
+        ".gba"
+      ],
+      "header": {
+        "offset": 178,
+        "hex": "96"
+      },
+      "codeAt": {
+        "offset": 172,
+        "length": 4
+      },
+      "titleAt": {
+        "offset": 160,
+        "length": 12
+      }
+    },
+    {
+      "id": "gbc",
+      "name": "Game Boy Color",
+      "extensions": [
+        ".gbc"
+      ],
+      "header": {
+        "offset": 260,
+        "hex": "ceed6666"
+      },
+      "titleAt": {
+        "offset": 308,
+        "length": 15
+      }
+    },
+    {
+      "id": "gb",
+      "name": "Game Boy",
+      "extensions": [
+        ".gb"
+      ],
+      "header": {
+        "offset": 260,
+        "hex": "ceed6666"
+      },
+      "titleAt": {
+        "offset": 308,
+        "length": 16
+      }
+    }
+  ],
+  "buttons": [
+    "A",
+    "B",
+    "SELECT",
+    "START",
+    "RIGHT",
+    "LEFT",
+    "UP",
+    "DOWN",
+    "R",
+    "L"
+  ],
+  "capabilities": [
+    "video",
+    "input",
+    "save_state",
+    "memory_read",
+    "pause",
+    "step",
+    "audio",
+    "screenshot"
+  ],
+  "memory": [
+    {
+      "name": "ewram",
+      "start": 33554432,
+      "size": 262144
+    },
+    {
+      "name": "iwram",
+      "start": 50331648,
+      "size": 32768
+    },
+    {
+      "name": "rom",
+      "start": 134217728,
+      "size": 33554432
+    }
+  ],
+  "controls": {
+    "ArrowUp": "UP",
+    "ArrowDown": "DOWN",
+    "ArrowLeft": "LEFT",
+    "ArrowRight": "RIGHT",
+    "KeyX": "A",
+    "KeyZ": "B",
+    "KeyA": "L",
+    "KeyS": "R",
+    "Enter": "START",
+    "Backspace": "SELECT"
+  }
+}

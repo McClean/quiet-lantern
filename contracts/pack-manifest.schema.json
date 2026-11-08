@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Game pack manifest v1",
+  "type": "object",
+  "required": [
+    "contract",
+    "id",
+    "name",
+    "adapter",
+    "match"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "contract": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{1,47}$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "adapter": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{1,31}$"
+    },
+    "match": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": false,
+      "properties": {
+        "codes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "sha1": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{40}$"
+          }
+        }
+      }
+    },
+    "provides": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "gameplayMode",
+          "isPaused",
+          "readState",
+          "actors",
+          "slot"
+        ]
+      }
+    },
+    "actorSwap": {
+      "enum": [
+        "avatar",
+        "units",
+        "none"
+      ],
+      "default": "none"
+    },
+    "skill": {
+      "type": "string",
+      "pattern": "^game-[a-z0-9-]+$"
+    }
+  }
+}

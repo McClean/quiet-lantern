@@ -1,0 +1,47 @@
+# Rebuilds every committed WebAssembly core from pinned upstream source and, on main, attests it
+# (catalog rule 17). The committed core must be byte-identical to this rebuild, or the job fails and
+# uploads the rebuilt files: commit those, and the next run on that commit attests them.
+name: build-cores
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write      # signs the attestation
+      attestations: write  # stores it
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: emscripten-core/setup-emsdk@4528d102f7230f0e7b276855c01ea1159be0e984 # v16
+        with:
+          version: "7.0.0"
+      - name: Build tools
+        run: sudo apt-get install -y --no-install-recommends ninja-build
+      - name: Build mGBA core
+        run: bash web/build.sh
+      - name: Build QuickNES core
+        run: bash libretro/build-core.sh quicknes https://github.com/libretro/QuickNES_Core.git 26bb785c9deddb66a17717b21bb4e328f03ade32 quicknes
+      - name: Rebuilt cores match the committed files
+        id: same
+        run: |
+          git status --porcelain adapters
+          git diff --exit-code --stat -- adapters
+      - name: Upload the rebuilt cores (only when they differ)
+        if: failure() && steps.same.outcome == 'failure'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: rebuilt-cores
+          path: |
+            adapters/*/core/
+            adapters/*/binding.mjs
+      - name: Attest the cores
+        if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: |
+            adapters/mgba/core/mgba.wasm
+            adapters/quicknes/core/core.wasm

@@ -1,0 +1,4 @@
+mgba 662dada8b79070bde93829a44d583c517fc5ec2d
+emcc emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 7.0.0 (777e6e5db7b4990bcaeb1b9998ed642cc84e6629)
+8c403b470c0dd59b198f56d837e9a828aaa56640cd8344f288c902a28d9a2e8c *mgba.wasm
+9678baf310407c6ca93fcb31ccbbadb75fdefe124cf3d6222cac2f208f1ea24f *mgba.mjs

@@ -1,0 +1,169 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Hermes player</title>
+<style>
+html,body{margin:0;height:100%;background:#0e0f12;color:#c9ccd3;font:12px system-ui,sans-serif;overflow:hidden}
+#app{display:flex;flex-direction:column;height:100%}
+#game{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+canvas{image-rendering:pixelated;display:block;outline:none;background:#000}
+#gate{position:absolute;bottom:8px;right:10px;font-size:11px;opacity:.75;cursor:pointer;display:none}
+/* Control legend: built from the adapter's controls and buttons. Not clickable; lights on input. */
+#pad{flex:0 0 auto;display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 14px 10px;border-top:1px solid #23262d;user-select:none;pointer-events:none}
+#src{flex:1 1 100%;display:flex;justify-content:space-between;font-size:11px;color:#8b909a}
+#legend{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+#src b{color:#c9ccd3;font-weight:600}
+.btn{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:52px;padding:4px 6px;border:1px solid #343842;border-radius:6px;background:#181a1f;color:#c9ccd3}
+.btn .g{font-weight:700;font-size:12px;line-height:1}
+.btn .k{font:700 11px ui-monospace,monospace;color:#e5c07b;margin-top:3px;white-space:nowrap}
+.btn.on{background:#3b82f6;border-color:#60a5fa;color:#fff}.btn.on .k{color:#e0ecff}
+</style></head>
+<body>
+<div id="app">
+  <div id="game"><canvas id="screen" width="240" height="160" tabindex="0"></canvas><div id="gate">🔇 click the game for sound</div></div>
+  <div id="pad">
+    <div id="src"><span>Controls: <b id="srcname">Keyboard</b></span><span id="hint">Connect a game controller and press any button to switch</span></div>
+    <div id="legend"></div>
+  </div>
+</div>
+<script type="module">
+// Core-neutral player (CONTRACTS §11.1). Runs inside the Hermes pane's opaque-origin sandbox (allow-scripts only):
+// no storage, no same-origin, no fetch. The emulator core arrives in `load`; this page names no core.
+// The shared modules are inlined by the host (game_mode_core.frame_html) and imported here as blob modules.
+__PRELUDE__
+
+const canvas = document.getElementById('screen');
+const ctx = canvas.getContext('2d');
+const gate = document.getElementById('gate');
+const legendEl = document.getElementById('legend');
+const post = (m, transfer) => parent.postMessage(m, '*', transfer || []);
+const ev = (kind, data) => post({ t: 'evidence', kind, data: data || {}, at: Date.now() });
+
+let img = null, audioCtx = null, nextAudio = 0, audioRate = 48000, audioOn = false, muted = false;
+let padId = null, lastPadKey = '', lastR3 = false, lastShown = -1, legendFor = null;
+
+// Adapter-neutral audio sink: an AudioContext fed buffers at the core's rate. Only started when the adapter has audio.
+const audioSink = {
+  start(rate) {
+    audioRate = rate; audioOn = true;
+    try { audioCtx ??= new AudioContext(); if (audioCtx.state !== 'running') audioCtx.resume().catch(() => {}); } catch { /* no audio is fine */ }
+    setTimeout(() => { gate.style.display = audioCtx && audioCtx.state !== 'running' ? 'block' : 'none'; }, 300);
+  },
+  push(samples) {
+    if (!audioCtx || audioCtx.state !== 'running') return;
+    const n = samples.length >> 1;
+    const buf = audioCtx.createBuffer(2, n, audioRate);
+    const L = buf.getChannelData(0), R = buf.getChannelData(1);
+    for (let i = 0; i < n; i++) { L[i] = samples[2 * i] / 32768; R[i] = samples[2 * i + 1] / 32768; }
+    const src = audioCtx.createBufferSource(); src.buffer = buf; src.connect(audioCtx.destination);
+    const now = audioCtx.currentTime;
+    if (nextAudio < now || nextAudio > now + 0.25) nextAudio = now + 0.03;
+    src.start(nextAudio); nextAudio += n / audioRate;
+  },
+};
+
+// Integer scale to fit the game area (CONTRACTS §11.1). The canvas is also clamped by CSS, so it can never cover
+// the legend; the observer re-fits on window resize and pane drags.
+const gameArea = document.getElementById('game');
+function fit() {
+  if (!canvas.width) return;
+  const s = fitSize(canvas.width, canvas.height, gameArea.clientWidth, gameArea.clientHeight);
+  canvas.style.width = canvas.width * s + 'px';
+  canvas.style.height = canvas.height * s + 'px';
+}
+new ResizeObserver(fit).observe(gameArea);
+addEventListener('resize', fit);
+
+const surface = {
+  resize(w, h) { canvas.width = w; canvas.height = h; img = null; fit(); },
+  present(rgba, w, h) {
+    img ??= ctx.createImageData(w, h);
+    img.data.set(rgba);                       // RGBA8888, unpadded (CONTRACTS §2)
+    ctx.putImageData(img, 0, 0);
+  },
+  async png(rgba, w, h) {
+    const off = new OffscreenCanvas(w, h);
+    off.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(rgba), w, h), 0, 0);
+    return new Uint8Array(await (await off.convertToBlob({ type: 'image/png' })).arrayBuffer()).buffer;
+  },
+};
+
+const player = createPlayer({ contracts, controls, importModule: __mod, surface, audio: audioSink });
+
+function renderLegend() {
+  if (!legendFor) return;
+  legendEl.replaceChildren(...legendFor.map(row => {
+    const el = document.createElement('div');
+    el.className = 'btn'; el.dataset.b = row.name;
+    el.innerHTML = '<span class="g"></span><span class="k"></span>';
+    el.querySelector('.g').textContent = row.name;
+    el.querySelector('.k').textContent = (padId ? row.pad : row.key) ?? '';
+    return el;
+  }));
+  document.getElementById('srcname').textContent = padId ? 'Game controller' : 'Keyboard';
+  document.getElementById('hint').textContent = padId ? 'Unplug the controller to go back to keyboard labels' : 'Connect a game controller and press any button to switch';
+}
+
+function lightLegend(mask) {
+  if (mask === lastShown) return;
+  lastShown = mask;
+  // bit i of the adapter mask = legend row i (the adapter's bit order)
+  legendFor?.forEach((row, i) => legendEl.children[i]?.classList.toggle('on', !!(mask & (1 << i))));
+}
+
+// Host gamepad snapshot (t:'host-pad'): the frame may be denied the Gamepad API, so the host forwards it.
+let hostPads = [];
+addEventListener('message', e => {
+  if (e.source !== parent || !e.data || e.data.t !== 'host-pad') return;
+  hostPads = e.data.pads || [];
+  const gp = hostPads.find(p => p.mapping === 'standard');
+  const r3 = !!(gp && gp.buttons[11] && gp.buttons[11].pressed);
+  if (r3 && !lastR3) ev('r3', { id: gp.id });
+  lastR3 = r3;
+  const key = gp ? gp.buttons.map((b, i) => b.pressed ? i : -1).filter(i => i >= 0).join(',') : 'none';
+  if (key !== lastPadKey) { lastPadKey = key; ev('pad', { pressed: key, id: gp ? gp.id : null }); }
+  const id = gp ? gp.id : null;
+  if (id !== padId) { padId = id; renderLegend(); }
+  player.setPads(hostPads);
+});
+
+// Fixed-rate loop: rAF only paints, the player decides how many emulated frames are owed.
+function loop(t) {
+  player.tick(t);
+  lightLegend(player.activeMask());
+  requestAnimationFrame(loop);
+}
+
+addEventListener('keydown', e => {
+  if (player.keyDown(e.code)) { e.preventDefault(); if (audioOn) { audioCtx?.resume?.().catch(() => {}); } }
+  if (!e.repeat) ev('key', { code: e.code, mapped: player.mappedName(e.code) });
+  if (e.code === 'Tab') { e.preventDefault(); ev('tab', {}); }
+}, true);
+addEventListener('keyup', e => { if (player.keyUp(e.code)) e.preventDefault(); });
+addEventListener('blur', () => { player.blur(); ev('frame-blur', { running: player.isRunning() }); });
+addEventListener('focus', () => ev('frame-focus', { running: player.isRunning() }));
+canvas.addEventListener('pointerdown', () => { canvas.focus(); audioCtx?.resume?.().catch(() => {}); });
+gate.addEventListener('click', () => { audioCtx?.resume?.().catch(() => {}); canvas.focus(); });
+
+addEventListener('message', async e => {
+  if (e.source !== parent) return;
+  const m = e.data || {};
+  if (!m.op) return;
+  const reply = (body, transfer) => post({ id: m.id, ...body }, transfer);
+  try {
+    if (m.op === 'load') {
+      const r = await player.handle(m);
+      if (r.ok) { legendFor = (await player.handle({ op: 'controls' })).labels; renderLegend(); canvas.focus(); }
+      return reply(r);
+    }
+    const r = await player.handle(m);
+    const transfer = r.png ? [r.png] : (r.state ? [r.state] : []);
+    if (m.op === 'controls') return reply({ ...r, source: padId ? 'gamepad' : 'keyboard', gamepad: padId });
+    return reply(r, transfer);
+  } catch (err) { reply({ ok: false, error: String(err && err.message || err) }); }
+});
+
+// The legend is built from the adapter in `load`; the loop runs from the start and idles until a game is loaded.
+requestAnimationFrame(loop);
+post({ t: 'ready' });
+ev('boot', { wasm: typeof WebAssembly.instantiate === 'function', origin: location.origin });
+</script>
+</body></html>

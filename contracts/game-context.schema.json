@@ -1,0 +1,204 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Game context v1",
+  "type": "object",
+  "required": [
+    "v",
+    "stage"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "v": {
+      "const": 1
+    },
+    "stage": {
+      "enum": [
+        "system_selected",
+        "title_selected",
+        "campaign_selected",
+        "launched",
+        "closed"
+      ]
+    },
+    "system": {
+      "type": "object",
+      "required": [
+        "id",
+        "adapter"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "adapter": {
+          "type": "string"
+        }
+      }
+    },
+    "title": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "skill"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{16}$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "code": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "pack": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "skill": {
+          "type": "string",
+          "pattern": "^game-[a-z0-9-]+$"
+        }
+      }
+    },
+    "campaign": {
+      "type": "object",
+      "required": [
+        "id",
+        "name"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^c_[0-9a-z]{8,32}$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "slot": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lastPlayedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "resume": {
+      "type": "object",
+      "required": [
+        "objectives",
+        "mode",
+        "style",
+        "reflexes",
+        "note"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "objectives": {
+          "type": "object"
+        },
+        "mode": {
+          "enum": [
+            "advisory",
+            "assist",
+            "full"
+          ]
+        },
+        "style": {
+          "enum": [
+            "together",
+            "expert"
+          ]
+        },
+        "reflexes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "note": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "stage": {
+            "const": "launched"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "v",
+          "stage",
+          "system",
+          "title",
+          "campaign",
+          "resume"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "stage": {
+            "enum": [
+              "title_selected",
+              "campaign_selected"
+            ]
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "v",
+          "stage",
+          "system",
+          "title"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "stage": {
+            "const": "system_selected"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "v",
+          "stage",
+          "system"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+adapter: quicknes
+url: https://github.com/libretro/QuickNES_Core.git
+commit: 26bb785c9deddb66a17717b21bb4e328f03ade32
+recipe: libretro/recipes/quicknes.sh
+licence-file: core/LICENSE.quicknes
+toolchain: emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 7.0.0 (777e6e5db7b4990bcaeb1b9998ed642cc84e6629)
+host: libretro/hm_libretro.c
+sha256:
+70762f1cbff33341e7016789ac29c37a9c07ca57890b48a7ea649533351b232e *core/core.wasm
+cd4c68999696497fbccafc88e112b521754b00f46771cca0a8d1fc43a3bf9179 *core/core.mjs
+04e6f2bc067d532c219a7ee8f674466c8e18e2bb0fe439dfc9e22f0539b4262c *binding.mjs

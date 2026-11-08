@@ -1,0 +1,26 @@
+# Tests and the private-data guard on every push and pull request. GitHub-hosted runners only.
+name: ci
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - name: Private-data guard
+        run: python3 scripts/check_private.py --all
+      - name: Python tests
+        run: >-
+          uv run --no-project --python 3.12 --exclude-newer 2026-11-01
+          --with "pytest>=8,<10" --with "pyyaml>=6,<7" --with "ruamel.yaml>=0.18,<0.19"
+          --with "fastapi>=0.110,<1" --with "httpx>=0.27,<1"
+          python -m pytest -q -p no:cacheprovider tests
+      - name: Node tests
+        run: node --test web/test/*.test.mjs desktop/test/plugin.test.mjs adapters/quicknes/test/*.test.mjs libretro/test/*.test.mjs

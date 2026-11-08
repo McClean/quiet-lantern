@@ -1,0 +1,72 @@
+{
+  "contract": 1,
+  "id": "quicknes",
+  "name": "QuickNES",
+  "version": "26bb785c",
+  "licence": "GPL-2.0-or-later",
+  "priority": 0,
+  "runtime": {
+    "kind": "wasm",
+    "files": [
+      "core/core.mjs",
+      "core/core.wasm"
+    ],
+    "binding": "binding.mjs"
+  },
+  "systems": [
+    {
+      "id": "nes",
+      "name": "Nintendo Entertainment System",
+      "extensions": [
+        ".nes"
+      ],
+      "header": {
+        "offset": 0,
+        "hex": "4e45531a"
+      }
+    }
+  ],
+  "buttons": [
+    "B",
+    "Y",
+    "SELECT",
+    "START",
+    "UP",
+    "DOWN",
+    "LEFT",
+    "RIGHT",
+    "A",
+    "X",
+    "L",
+    "R",
+    "L2",
+    "R2"
+  ],
+  "capabilities": [
+    "video",
+    "input",
+    "save_state",
+    "memory_read",
+    "pause",
+    "step",
+    "audio",
+    "screenshot"
+  ],
+  "memory": [
+    {
+      "name": "ram",
+      "start": 0,
+      "size": 2048
+    }
+  ],
+  "controls": {
+    "ArrowUp": "UP",
+    "ArrowDown": "DOWN",
+    "ArrowLeft": "LEFT",
+    "ArrowRight": "RIGHT",
+    "KeyX": "A",
+    "KeyZ": "B",
+    "Enter": "START",
+    "Backspace": "SELECT"
+  }
+}
